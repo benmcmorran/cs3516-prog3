@@ -57,10 +57,21 @@ void phy_setSocket(int sock) {
 	SOCKET = sock;
 }
 
+void phy_printBuffer(char *buf, size_t length) {
+	int i;
+	for (i = 0; i < length; i++) {
+		printf("%x %c\n", (uint8_t)buf[i], buf[i]);
+	}
+}
+
 void phy_sendBuffer(char *data, size_t length) {
 	ssize_t sent = send(SOCKET, data, length, 0);
 	if (sent < 0) error_system("send() failed");
 	else if (sent != length) error_user("send()", "sent unexpected number of bytes");
+
+	printf("phy send\n");
+	phy_printBuffer(data, length);
+	printf("\n");
 }
 
 void phy_send(char *data, size_t length, char *error, int corrupt) {
@@ -81,6 +92,11 @@ size_t phy_recvPartial(char *data, size_t length) {
 	ssize_t received = recv(SOCKET, data, length, 0);
 	if (received < 0) error_system("recv() failed");
 	else if (received == 0) error_user("recv()", "connection closed prematurely");
+
+	printf("phy recv\n");
+	phy_printBuffer(data, received);
+	printf("\n");
+
 	return received;
 }
 

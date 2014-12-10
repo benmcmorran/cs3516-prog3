@@ -4,8 +4,8 @@
 #include "error.h"
 
 typedef enum {
-	DATA,
-	ACK
+	DATA = 0,
+	ACK = 1
 } FrameType;
 
 void dat_setShouldCorrupt(int (*corrupt)(int, int, FrameType));
