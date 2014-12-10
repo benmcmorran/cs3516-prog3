@@ -1,3 +1,6 @@
+#pragma once
+
+#include "error.h"
 
 typedef enum {
 	DATA,
