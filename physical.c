@@ -60,7 +60,7 @@ void phy_setSocket(int sock) {
 void phy_sendBuffer(char *data, size_t length) {
 	ssize_t sent = send(SOCKET, data, length, 0);
 	if (sent < 0) error_system("send() failed");
-	else if (sent != len) error_user("send()", "sent unexpected number of bytes");
+	else if (sent != length) error_user("send()", "sent unexpected number of bytes");
 }
 
 void phy_send(char *data, size_t length, char *error, int corrupt) {
@@ -68,7 +68,7 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
 
 	if (corrupt) {
 		int bit = rand() % 16;
-		&(uint16_t *)error = &(uint16_t *)error ~ (0x1 << bit);
+		*(uint16_t *)error = *(uint16_t *)error ^ (0x1 << bit);
 	}
 
 	uint8_t frameLength = length + 2;
@@ -77,21 +77,22 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
 	phy_sendBuffer(error, 2);
 }
 
-void phy_recvPartial(char *data, size_t length) {
+size_t phy_recvPartial(char *data, size_t length) {
 	ssize_t received = recv(SOCKET, data, length, 0);
 	if (received < 0) error_system("recv() failed");
 	else if (received == 0) error_user("recv()", "connection closed prematurely");
+	return received;
 }
 
 void phy_recvBuffer(char* data, size_t length) {
 	size_t received = 0;
 	while (received < length)
-		received += phy_recvPartial(SOCKET, (char *) data + received, len - received);
+		received += phy_recvPartial((char *) data + received, length - received);
 }
 
 size_t phy_recv(char *data, size_t length) {
 	uint8_t frameLength;
-	phy_recvBuffer(sock, &frameLength, 1);
+	phy_recvBuffer(&frameLength, 1);
 
 	if (frameLength > length) error_user("recv()", "frame is larger than buffer");
 
