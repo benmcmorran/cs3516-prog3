@@ -1,7 +1,10 @@
 #include "physical.h"
 
+/* Global socket identifier used for physical layer communication. */
 int SOCKET = -1;
 
+/* Author: Ben McMorran
+ * Establishes a connection with the server at the given hostname. */
 void phy_connect(char *server) {
 	SOCKET = socket(AF_INET, SOCK_STREAM, 0);
 	if (SOCKET < 0) error_system("socket() failed");
@@ -25,6 +28,9 @@ void phy_connect(char *server) {
 		error_system("connect() failed");
 }
 
+/* Author: Ben McMorran
+ * Configures this device to act as a server by creating a socket, binding to
+ * the well known port, and setting the socket to listen. */
 void phy_host() {
 	SOCKET = socket(AF_INET, SOCK_STREAM, 0);
 	if (SOCKET < 0) error_system("socket() failed");
@@ -41,6 +47,8 @@ void phy_host() {
 	if (listen(SOCKET, BACKLOG) < 0) error_system("listen() failed");
 }
 
+/* Author: Ben McMorran
+ * Blocks until an incoming connection arrives, returning the client socket. */
 int phy_accept() {
 	struct sockaddr_in addr;
 	socklen_t addrLen = sizeof(addr);
@@ -49,14 +57,20 @@ int phy_accept() {
 	return sock;
 }
 
+/* Author: Ben McMorran
+ * Closes the physical connection. */
 void phy_close() {
 	if (close(SOCKET) < 0) error_system("close() failed");
 }
 
+/* Author: Ben McMorran
+ * Sets the global socket to sock. Used in conjunction with phy_accept. */
 void phy_setSocket(int sock) {
 	SOCKET = sock;
 }
 
+/* Author: Ben McMorran
+ * Prints the hexadecimal and ASCII values in buf. Used for debugging. */
 void phy_printBuffer(char *buf, size_t length) {
 	int i, j;
 	for (i = 0; i < length;) {
@@ -71,6 +85,8 @@ void phy_printBuffer(char *buf, size_t length) {
 	}
 }
 
+/* Author: Ben McMorran
+ * Sends the given buffer over the TCP connection. */
 void phy_sendBuffer(char *data, size_t length) {
 	ssize_t sent = send(SOCKET, data, length, 0);
 	if (sent < 0) error_system("send() failed");
@@ -81,6 +97,9 @@ void phy_sendBuffer(char *data, size_t length) {
 	printf("\n");
 }
 
+/* Author: Ben McMorran
+ * Sends the given buffer and error detection bytes over the physical layer,
+ * optionally flipping a random bit in error if corrupt is true. */
 void phy_send(char *data, size_t length, char *error, int corrupt) {
 	if (length + 2 > 255) error_user("send()", "length is outside range");
 
@@ -95,6 +114,9 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
 	phy_sendBuffer(error, 2);
 }
 
+/* Author: Ben McMorran
+ * Receives up to length bytes from the physical layer into data, returning the
+ * number of bytes actually received. */
 size_t phy_recvPartial(char *data, size_t length) {
 	ssize_t received = recv(SOCKET, data, length, 0);
 	if (received < 0) error_system("recv() failed");
@@ -107,12 +129,17 @@ size_t phy_recvPartial(char *data, size_t length) {
 	return received;
 }
 
+/* Author: Ben McMorran
+ * Receives from the physical layer into data until the buffer is filled. */
 void phy_recvBuffer(char* data, size_t length) {
 	size_t received = 0;
 	while (received < length)
 		received += phy_recvPartial((char *) data + received, length - received);
 }
 
+/* Author: Ben McMorran
+ * Receives one frame from the physical layer and places it in data, returning
+ * the length of the frame in bytes. */
 size_t phy_recv(char *data, size_t length) {
 	uint8_t frameLength;
 	phy_recvBuffer(&frameLength, 1);
