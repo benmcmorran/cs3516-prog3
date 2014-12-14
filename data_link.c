@@ -39,7 +39,7 @@ void dat_recvDataFrame(uint16_t *sequenceNumber, uint8_t *endOfPacket, uint8_t *
 	char buffer[200];
 	dat_recvRawFrame(buffer, 200);
 
-	if ((uint8_t)buffer[0] != DATA)
+	if ((uint8_t)buffer[0] != FT_DATA)
 		error_user("dat_recvDataFrame()", "received non data frame");
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
@@ -52,7 +52,7 @@ void dat_recvAckFrame(uint16_t *sequenceNumber) {
 	char buffer[5];
 	dat_recvRawFrame(buffer, 5);
 
-	if ((uint8_t)buffer[0] != ACK)
+	if ((uint8_t)buffer[0] != FT_ACK)
 		error_user("dat_recvDataFrame()", "received non ack frame");
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
@@ -61,12 +61,12 @@ void dat_recvAckFrame(uint16_t *sequenceNumber) {
 void dat_sendRawFrame(char *data, size_t length) {
 	char error[2] = { 0, 0 };
 	dat_error(data, length, error);
-	phy_send(data, length, error, SHOULD_CORRUPT(dataFrameCount, ackFrameCount, DATA));
+	phy_send(data, length, error, SHOULD_CORRUPT(dataFrameCount, ackFrameCount, FT_DATA));
 }
 
 void dat_sendDataFrame(uint8_t endOfPacket, char *data, size_t length) {
 	char buffer[200];
-	buffer[0] = DATA;
+	buffer[0] = FT_DATA;
 	*(uint16_t *)(buffer + 1) = sequence;
 	buffer[3] = endOfPacket;
 	buffer[4] = length;
@@ -77,7 +77,7 @@ void dat_sendDataFrame(uint8_t endOfPacket, char *data, size_t length) {
 
 void dat_sendAckFrame() {
 	char buffer[3];
-	buffer[0] = ACK;
+	buffer[0] = FT_ACK;
 	*(uint16_t *)(buffer + 1) = sequence;
 	dat_sendRawFrame(buffer, 3);
 	ackFrameCount++;

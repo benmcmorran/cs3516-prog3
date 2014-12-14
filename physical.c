@@ -58,9 +58,16 @@ void phy_setSocket(int sock) {
 }
 
 void phy_printBuffer(char *buf, size_t length) {
-	int i;
-	for (i = 0; i < length; i++) {
-		printf("%x %c\n", (uint8_t)buf[i], buf[i]);
+	int i, j;
+	for (i = 0; i < length;) {
+		for (j = i; j < i + 8 && j < length; j++) {
+			printf("%02x ", (uint8_t)buf[j]);
+		}
+		for (j = i; j < i + 8 && j < length; j++) {
+			printf("%c  ", buf[j]);
+		}
+		printf("\n");
+		i = j;
 	}
 }
 

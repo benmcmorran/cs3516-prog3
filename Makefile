@@ -1,5 +1,5 @@
-HEADERS = error.h physical.h data_link.h
-SHARED_OBJECTS = error.o physical.o data_link.o
+HEADERS = error.h physical.h data_link.h network.h
+SHARED_OBJECTS = error.o physical.o data_link.o network.o
 CLIENT_OBJECTS = client.o $(SHARED_OBJECTS)
 SERVER_OBJECTS = server.o $(SHARED_OBJECTS)
 OBJECTS = $(CLIENT_OBJECTS) $(SERVER_OBJECTS)
