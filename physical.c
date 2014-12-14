@@ -3,12 +3,6 @@
 /* Global socket identifier used for physical layer communication. */
 int SOCKET = -1;
 
-/* Default timeout value for receiving data */
-struct timeval TIMEOUT = {
-	.tv_sec = 0,
-	.tv_usec = 2000
-};
-
 /* Author: Ben McMorran
  * Establishes a connection with the server at the given hostname. */
 void phy_connect(char *server) {
@@ -78,17 +72,18 @@ void phy_setSocket(int sock) {
 /* Author: Ben McMorran
  * Prints the hexadecimal and ASCII values in buf. Used for debugging. */
 void phy_printBuffer(char *buf, size_t length) {
-	int i, j;
-	for (i = 0; i < length;) {
-		for (j = i; j < i + 8 && j < length; j++) {
+	int i;
+	for (i = 0; i < length; i++)
+		printf("%02x ", (uint8_t)buf[i]);
+	printf("\n");
+		/*for (j = i; j < i + 8 && j < length; j++) {
 			printf("%02x ", (uint8_t)buf[j]);
 		}
 		for (j = i; j < i + 8 && j < length; j++) {
 			printf("%c  ", buf[j]);
 		}
 		printf("\n");
-		i = j;
-	}
+		i = j;*/
 }
 
 /* Author: Ben McMorran
@@ -98,7 +93,7 @@ void phy_sendBuffer(char *data, size_t length) {
 	if (sent < 0) error_system("send() failed");
 	else if (sent != length) error_user("send()", "sent unexpected number of bytes");
 
-	/* 
+	/*
 	// Debug code
 	printf("phy send\n");
 	phy_printBuffer(data, length);
@@ -126,37 +121,44 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
 /* Author: Ben McMorran
  * Receives up to length bytes from the physical layer into data, returning the
  * number of bytes actually received. */
-ssize_t phy_recvPartial(char *data, size_t length) {
-	fd_set fdSet;
-	int readyNo;
+ssize_t phy_recvPartial(char *data, size_t length, int allowTimeout) {
+	// printf("phy recv, ");
 	
-	FD_ZERO(&fdSet);
-	FD_SET(SOCKET, &fdSet);
-	readyNo = select(SOCKET + 1, &fdSet, 0, 0, &TIMEOUT);
-	
-	if (readyNo < 0) error_system("select() failed");
-	else if (readyNo == 0) return -1;
+	if (allowTimeout) {
+		fd_set fdSet;
+		int readyNo;
+		struct timeval timeout = {
+			.tv_sec = 0,
+			.tv_usec = 100000
+		};
+
+		FD_ZERO(&fdSet);
+		FD_SET(SOCKET, &fdSet);
+		readyNo = select(SOCKET + 1, &fdSet, 0, 0, &timeout);
+
+		// printf("readyNo %d\n", readyNo);
+
+		if (readyNo < 0) error_system("select() failed");
+		else if (readyNo == 0) return -1;
+	}
 	
 	ssize_t received = recv(SOCKET, data, length, 0);
 	if (received < 0) error_system("recv() failed");
 	else if (received == 0) error_user("recv()", "connection closed prematurely");
 	
-	/*
 	// Debug info 
-	printf("phy recv\n");
-	phy_printBuffer(data, received);
-	printf("\n");
-	*/
+	// phy_printBuffer(data, received);
+	// printf("\n");
 	
 	return received;
 }
 
 /* Author: Ben McMorran
  * Receives from the physical layer into data until the buffer is filled. */
-ssize_t phy_recvBuffer(char* data, size_t length) {
+ssize_t phy_recvBuffer(char* data, size_t length, int allowTimeout) {
 	size_t received = 0;
 	while (received < length) {
-		ssize_t count = phy_recvPartial((char *) data + received, length - received);
+		ssize_t count = phy_recvPartial((char *) data + received, length - received, allowTimeout);
 		if (count < 0) return -1;
 		received += count;
 	}
@@ -168,10 +170,10 @@ ssize_t phy_recvBuffer(char* data, size_t length) {
  * the length of the frame in bytes. */
 ssize_t phy_recv(char *data, size_t length) {
 	uint8_t frameLength;
-	if (phy_recvBuffer(&frameLength, 1) < 0) return -1;
+	if (phy_recvBuffer(&frameLength, 1, 1) < 0) return -1;
 
 	if (frameLength > length) error_user("recv()", "frame is larger than buffer");
 	
-	if (phy_recvBuffer(data, frameLength) < 0) return -1;
+	phy_recvBuffer(data, frameLength, 0);
 	return frameLength;
 }
