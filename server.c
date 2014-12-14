@@ -9,8 +9,20 @@ int alwaysCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 void main(int argc, char *argv[]) {
 	// phy_host readies server to receive connections
 	phy_host();
-	// Creates socket for tcp connection (physical layer)
-	phy_setSocket(phy_accept());
+	
+	while(1)
+	{	
+		// Gets new socket
+		int clientsock = phy_accept();
+		// Forks and sets to new Socket
+		if( fork() == 0)
+		{
+			phy_setSocket(clientsock);
+			break;
+		}
+		
+	}
+	
 	int id,numphotos,i;
 	net_handshake(&id, &numphotos);
 	char photoFile[100];
