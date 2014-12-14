@@ -1,5 +1,6 @@
 #include "network.h"
 
+// Structure used for 
 typedef enum{
 	PT_ACK = 0,
 	PT_DATA = 1,
@@ -40,6 +41,8 @@ void net_recvDataPacket( int *pinfo, uint8_t *len, uint8_t *EOP, char * data) {
 // Breaks apart data buffer.
 void net_recvACKPacket() {
 	char buffer;
+	// Receives from physical layer, one data packet.
+	// Should be ACK from size 1.
 	dat_recv(&buffer, 1);
 	
 	
@@ -93,7 +96,37 @@ int net_recv(char * data, size_t length, int *endOfPhoto)
 }
 
 
-
-void net_connect( uint16_t id, char * server) {
-	
+// Initializes handshake between client and server. 
+void net_connect( uint16_t id, uint16_t numphotos, char * server) {
+	phy_connect(server);
+	char buffer[5];
+	buffer[0] = PT_INIT;
+	// Taken form Ben's mind. Shifts over one byte and cast as uint_16 pointer. Same size as 
+	// two chars and then assigns that all at once to id.
+	*(uint16_t *)(buffer + 1) = id;
+	*(uint16_t *)(buffer + 3) = numphotos;
+	// Sending INIT packet.
+	dat_send(buffer,5);
+	net_recvACKPacket();
 }
+
+// Returns client id
+void net_handshake(int * id, int * numphotos){
+	char buffer[5];
+	dat_recv(buffer,5);
+	
+	if(buffer[0] != PT_INIT)
+	{
+		printf("This is not an INIT packet. Closing");
+		exit(1);
+	}
+	else
+	{	
+		// Sends ack on receival of INIT packet on server side.
+		char ack = PT_ACK;
+		dat_send(&ack,1);
+		*id = *(uint16_t *)(buffer + 1);
+		*numphotos = *(uint16_t *)(buffer + 3);
+	}
+}
+
