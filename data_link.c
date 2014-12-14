@@ -139,6 +139,7 @@ size_t dat_recv(char *data, size_t length) {
 		uint8_t payloadLength;
 		int error = dat_recvDataFrame(&sequenceNumber, &end, &payloadLength, data + position);
 		
+		// ACK if no error
 		if (error >= 0) {
 			dat_sendAckFrame(sequenceNumber);
 			if (sequenceNumber == sequence) {
