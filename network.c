@@ -53,11 +53,12 @@ void net_recvDataPacket( int *pinfo, uint8_t *len, uint8_t *EOP, char * data) {
 // Returns how much data was read
 // length is not length of data in the buffer.
 // Represents the size of it.
-int net_recv(char * data, size_t length) 
+int net_recv(char * data, size_t length, int *endOfPhoto) 
 {	
 	int pinfo;
 	uint8_t  plen, pEOP;
 	net_recvDataPacket( &pinfo, &plen, &pEOP, data);
+	*endOfPhoto = pEOP;
 	return plen;
 }
 
