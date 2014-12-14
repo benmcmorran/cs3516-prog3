@@ -9,6 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #include "error.h"
 
@@ -25,4 +27,4 @@ void phy_setSocket(int sock);
 
 /* Send and receive function prototpyes. See physical.c for full documentation. */
 void phy_send(char *data, size_t length, char *error, int corrupt);
-size_t phy_recv(char *data, size_t length);
+ssize_t phy_recv(char *data, size_t length);

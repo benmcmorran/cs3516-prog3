@@ -2,14 +2,14 @@
 
 #include "network.h"
 
-int alwaysCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
-	return 1;
+int ServerCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
+	return ackFrames % 13 == 0 && frameType == FT_ACK;
 }
 
 void main(int argc, char *argv[]) {
 	// phy_host readies server to receive connections
 	phy_host();
-	
+	dat_setShouldCorrupt(ServerCorrupt);
 	while(1)
 	{	
 		// Gets new socket
@@ -26,7 +26,6 @@ void main(int argc, char *argv[]) {
 	int id,numphotos,i;
 	net_handshake(&id, &numphotos);
 	char photoFile[100];
-	//dat_setShouldCorrupt(alwaysCorrupt);
 	
 	
 	for(i = 0;i < numphotos; i++)

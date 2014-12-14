@@ -38,19 +38,20 @@ int dat_verifyFrame(char *data, size_t length, char *expectedError) {
 
 /* Author: Ben McMorran
  * Receives one valid frame from the physical layer, returning its length. */
-size_t dat_recvRawFrame(char *data, size_t length) {
-	size_t frameLength;
+ssize_t dat_recvRawFrame(char *data, size_t length) {
+	ssize_t frameLength;
 	do {
 		frameLength = phy_recv(data, 200);
+		if (frameLength < 0) return -1;
 	} while (!dat_verifyFrame(data, frameLength - 2, data + frameLength - 2));
 	return frameLength - 2;
 }
 
 /* Author: Ben McMorran
  * Receives one valid data frame, filling in the appropritate arguments. */
-void dat_recvDataFrame(uint16_t *sequenceNumber, uint8_t *endOfPacket, uint8_t *length, char *payload) {
+int dat_recvDataFrame(uint16_t *sequenceNumber, uint8_t *endOfPacket, uint8_t *length, char *payload) {
 	char buffer[200];
-	dat_recvRawFrame(buffer, 200);
+	if (dat_recvRawFrame(buffer, 200) < 0) return -1;
 
 	if ((uint8_t)buffer[0] != FT_DATA)
 		error_user("dat_recvDataFrame()", "received non data frame");
@@ -59,18 +60,20 @@ void dat_recvDataFrame(uint16_t *sequenceNumber, uint8_t *endOfPacket, uint8_t *
 	*endOfPacket = (uint8_t)buffer[3];
 	*length = (uint8_t)buffer[4];
 	memcpy(payload, buffer + 5, *length);
+	return 0;
 }
 
 /* Author: Ben McMorran
  * Receives one valid ack frame, filling in sequenceNumber. */
-void dat_recvAckFrame(uint16_t *sequenceNumber) {
+int dat_recvAckFrame(uint16_t *sequenceNumber) {
 	char buffer[5];
-	dat_recvRawFrame(buffer, 5);
+	if (dat_recvRawFrame(buffer, 5) < 0) return -1;
 
 	if ((uint8_t)buffer[0] != FT_ACK)
-		error_user("dat_recvDataFrame()", "received non ack frame");
+		error_user("dat_recvAckFrame()", "received non ack frame");
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
+	return 0;
 }
 
 /* Author: Ben McMorran
@@ -96,10 +99,10 @@ void dat_sendDataFrame(uint8_t endOfPacket, char *data, size_t length) {
 
 /* Author: Ben McMorran
  * Sends one ack frame with the appropriate sequence number. */
-void dat_sendAckFrame() {
+void dat_sendAckFrame(uint16_t sequenceNumber) {
 	char buffer[3];
 	buffer[0] = FT_ACK;
-	*(uint16_t *)(buffer + 1) = sequence;
+	*(uint16_t *)(buffer + 1) = sequenceNumber;
 	dat_sendRawFrame(buffer, 3);
 	ackFrameCount++;
 }
@@ -112,10 +115,15 @@ void dat_send(char *data, size_t length) {
 	for (i = 0; i < length; i += 124) {
 		int end = i + 124 >= length;
 		int payloadLength = end ? length - i : 124;
-		dat_sendDataFrame(end, data + i, payloadLength);
+		
+		int frameAcked = 0;
+		while (!frameAcked) {
+			dat_sendDataFrame(end, data + i, payloadLength);
 
-		uint16_t sequenceNumber;
-		dat_recvAckFrame(&sequenceNumber);
+			uint16_t sequenceNumber;
+			int error = dat_recvAckFrame(&sequenceNumber);
+			frameAcked = error >= 0 && sequenceNumber == sequence;
+		}
 
 		sequence++;
 	}
@@ -129,10 +137,15 @@ size_t dat_recv(char *data, size_t length) {
 	do {
 		uint16_t sequenceNumber;
 		uint8_t payloadLength;
-		dat_recvDataFrame(&sequenceNumber, &end, &payloadLength, data + position);
-		position += payloadLength;
-		dat_sendAckFrame();
-		sequence++;
+		int error = dat_recvDataFrame(&sequenceNumber, &end, &payloadLength, data + position);
+		
+		if (error >= 0) {
+			dat_sendAckFrame(sequenceNumber);
+			if (sequenceNumber == sequence) {
+				position += payloadLength;
+				sequence++;
+			}
+		}
 	} while (!end);
 
 	return position;

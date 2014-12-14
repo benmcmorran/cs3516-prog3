@@ -3,6 +3,12 @@
 /* Global socket identifier used for physical layer communication. */
 int SOCKET = -1;
 
+/* Default timeout value for receiving data */
+struct timeval TIMEOUT = {
+	.tv_sec = 0,
+	.tv_usec = 2000
+};
+
 /* Author: Ben McMorran
  * Establishes a connection with the server at the given hostname. */
 void phy_connect(char *server) {
@@ -120,7 +126,17 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
 /* Author: Ben McMorran
  * Receives up to length bytes from the physical layer into data, returning the
  * number of bytes actually received. */
-size_t phy_recvPartial(char *data, size_t length) {
+ssize_t phy_recvPartial(char *data, size_t length) {
+	fd_set fdSet;
+	int readyNo;
+	
+	FD_ZERO(&fdSet);
+	FD_SET(SOCKET, &fdSet);
+	readyNo = select(SOCKET + 1, &fdSet, 0, 0, &TIMEOUT);
+	
+	if (readyNo < 0) error_system("select() failed");
+	else if (readyNo == 0) return -1;
+	
 	ssize_t received = recv(SOCKET, data, length, 0);
 	if (received < 0) error_system("recv() failed");
 	else if (received == 0) error_user("recv()", "connection closed prematurely");
@@ -137,21 +153,25 @@ size_t phy_recvPartial(char *data, size_t length) {
 
 /* Author: Ben McMorran
  * Receives from the physical layer into data until the buffer is filled. */
-void phy_recvBuffer(char* data, size_t length) {
+ssize_t phy_recvBuffer(char* data, size_t length) {
 	size_t received = 0;
-	while (received < length)
-		received += phy_recvPartial((char *) data + received, length - received);
+	while (received < length) {
+		ssize_t count = phy_recvPartial((char *) data + received, length - received);
+		if (count < 0) return -1;
+		received += count;
+	}
+	return received;
 }
 
 /* Author: Ben McMorran
  * Receives one frame from the physical layer and places it in data, returning
  * the length of the frame in bytes. */
-size_t phy_recv(char *data, size_t length) {
+ssize_t phy_recv(char *data, size_t length) {
 	uint8_t frameLength;
-	phy_recvBuffer(&frameLength, 1);
+	if (phy_recvBuffer(&frameLength, 1) < 0) return -1;
 
 	if (frameLength > length) error_user("recv()", "frame is larger than buffer");
-
-	phy_recvBuffer(data, frameLength);
+	
+	if (phy_recvBuffer(data, frameLength) < 0) return -1;
 	return frameLength;
 }
