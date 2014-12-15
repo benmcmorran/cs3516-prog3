@@ -120,9 +120,14 @@ void dat_send(char *data, size_t length) {
 		while (!frameAcked) {
 			dat_sendDataFrame(end, data + i, payloadLength);
 
+			// Multiple old ACKs may have accumulated. Loop until we timeout or
+			// reach an ACK with the correct sequence number.
 			uint16_t sequenceNumber;
-			int error = dat_recvAckFrame(&sequenceNumber);
-			frameAcked = error >= 0 && sequenceNumber == sequence;
+			int error;
+			do {
+				int error = dat_recvAckFrame(&sequenceNumber);
+				frameAcked = error >= 0 && sequenceNumber == sequence;
+			} while (error >= 0 && sequenceNumber != sequence);
 		}
 
 		sequence++;
