@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "network.h"
+#include "error.h"
 
 int main(int argc, char* argv[])
 {
@@ -10,6 +11,8 @@ int main(int argc, char* argv[])
 	// File pointer and strings to concatenate to make 
 	FILE *ifp, *ofp;
 	char photoFile[255];
+
+	logfile = fopen("clientlog.txt", "w");
 	
 	
 	// Creates string for file to load
@@ -73,5 +76,6 @@ int main(int argc, char* argv[])
 			exit(1);
 	}
 	
+	fclose(logfile);
     return 0;
 } 

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // The file to log errors to
-FILE* logfile;
+extern FILE* logfile;
 
 // Error function prototypes. See error.c for full documentation.
 void error_user(const char *msg, const char *detail);

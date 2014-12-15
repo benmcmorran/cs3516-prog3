@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "network.h"
+#include "error.h"
 
 int ServerCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 	return ackFrames % 13 == 0 && frameType == FT_ACK;
@@ -9,7 +10,7 @@ int ServerCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 void main(int argc, char *argv[]) {
 	// phy_host readies server to receive connections
 	phy_host();
-	// dat_setShouldCorrupt(ServerCorrupt);
+	dat_setShouldCorrupt(ServerCorrupt);
 	while(1)
 	{	
 		// Gets new socket
@@ -26,6 +27,8 @@ void main(int argc, char *argv[]) {
 	int id,numphotos,i;
 	net_handshake(&id, &numphotos);
 	char photoFile[100];
+
+	logfile = fopen("serverlog.txt", "w");
 	
 	
 	for(i = 0;i < numphotos; i++)
@@ -59,6 +62,7 @@ void main(int argc, char *argv[]) {
 	//net_send("Hello world from the server! This is a longer response that will not fit inside one frame because it is longer than one hundred and twenty four bytes.", 151, 1);
 
 	phy_close();
+	fclose(logfile);
 	
 }
 

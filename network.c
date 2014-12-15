@@ -7,6 +7,7 @@ typedef enum{
 	PT_INIT = 2
 } p_type;
 
+int packet = 0;
 
 // Appends all the bytes together to form one char*
 void makePacket( int pinfo,int  len,int EOP,char * data, char * ret)
@@ -52,6 +53,8 @@ void net_recvACKPacket() {
 		exit(1);
 	}
 	
+	log_ackPacketReceived();
+	packet++;
 }
 
 void net_send(char * data, size_t length, int end) 
@@ -71,6 +74,7 @@ void net_send(char * data, size_t length, int end)
 	
 	
 	dat_send(payload, totalLen);
+	log_packetSent(packet++);
 	// Wait for ACK
 	net_recvACKPacket();
 }
@@ -92,6 +96,8 @@ int net_recv(char * data, size_t length, int *endOfPhoto)
 	*endOfPhoto = pEOP;
 	// Sends ACK after receiving packet from data link layer.
 	dat_send(&ack, 1);
+	log_ackPacketSent();
+	packet++;
 	return plen;
 }
 
@@ -107,6 +113,7 @@ void net_connect( uint16_t id, uint16_t numphotos, char * server) {
 	*(uint16_t *)(buffer + 3) = numphotos;
 	// Sending INIT packet.
 	dat_send(buffer,5);
+	log_packetSent(packet++);
 	net_recvACKPacket();
 }
 
@@ -125,6 +132,9 @@ void net_handshake(int * id, int * numphotos){
 		// Sends ack on receival of INIT packet on server side.
 		char ack = PT_ACK;
 		dat_send(&ack,1);
+		// Can't log during handshake because logfile is not opened
+		//log_ackPacketSent();
+		packet++;
 		*id = *(uint16_t *)(buffer + 1);
 		*numphotos = *(uint16_t *)(buffer + 3);
 	}

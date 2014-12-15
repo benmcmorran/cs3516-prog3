@@ -10,6 +10,8 @@ int neverCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 int (*SHOULD_CORRUPT)(int, int, FrameType) = neverCorrupt;
 int dataFrameCount = 0;
 int ackFrameCount = 0;
+int packetCount = 0;
+int frameCount = 0;
 uint16_t sequence = 0;
 
 /* Author: Ben McMorran
@@ -40,10 +42,16 @@ int dat_verifyFrame(char *data, size_t length, char *expectedError) {
  * Receives one valid frame from the physical layer, returning its length. */
 ssize_t dat_recvRawFrame(char *data, size_t length) {
 	ssize_t frameLength;
+	int verified = 0;
 	do {
 		frameLength = phy_recv(data, 200);
-		if (frameLength < 0) return -1;
-	} while (!dat_verifyFrame(data, frameLength - 2, data + frameLength - 2));
+		if (frameLength < 0) {
+			log_timeout();
+			return -1;
+		}
+		verified = dat_verifyFrame(data, frameLength - 2, data + frameLength - 2);
+		if (!verified) log_frameError();
+	} while (!verified);
 	return frameLength - 2;
 }
 
@@ -73,15 +81,16 @@ int dat_recvAckFrame(uint16_t *sequenceNumber) {
 		error_user("dat_recvAckFrame()", "received non ack frame");
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
+	log_ackFrameReceived(*sequenceNumber);
 	return 0;
 }
 
 /* Author: Ben McMorran
  * Computes the error detection bytes of a raw frame and sends it. */
-void dat_sendRawFrame(char *data, size_t length) {
+void dat_sendRawFrame(char *data, size_t length, FrameType frameType) {
 	char error[2] = { 0, 0 };
 	dat_error(data, length, error);
-	phy_send(data, length, error, SHOULD_CORRUPT(dataFrameCount, ackFrameCount, FT_DATA));
+	phy_send(data, length, error, SHOULD_CORRUPT(dataFrameCount, ackFrameCount, frameType));
 }
 
 /* Author: Ben McMorran
@@ -93,7 +102,7 @@ void dat_sendDataFrame(uint8_t endOfPacket, char *data, size_t length) {
 	buffer[3] = endOfPacket;
 	buffer[4] = length;
 	memcpy(buffer + 5, data, length);
-	dat_sendRawFrame(buffer, 5 + length);
+	dat_sendRawFrame(buffer, 5 + length, FT_DATA);
 	dataFrameCount++;
 }
 
@@ -103,7 +112,8 @@ void dat_sendAckFrame(uint16_t sequenceNumber) {
 	char buffer[3];
 	buffer[0] = FT_ACK;
 	*(uint16_t *)(buffer + 1) = sequenceNumber;
-	dat_sendRawFrame(buffer, 3);
+	dat_sendRawFrame(buffer, 3, FT_ACK);
+	log_ackFrameSent(sequenceNumber);
 	ackFrameCount++;
 }
 
@@ -111,14 +121,22 @@ void dat_sendAckFrame(uint16_t sequenceNumber) {
  * Sends data across the data link layer, breaking into frames and waiting for
  * acks as needed. */
 void dat_send(char *data, size_t length) {
+	frameCount = 0;
+
 	int i;
 	for (i = 0; i < length; i += 124) {
 		int end = i + 124 >= length;
 		int payloadLength = end ? length - i : 124;
 		
 		int frameAcked = 0;
+		int firstTime = 1;
 		while (!frameAcked) {
 			dat_sendDataFrame(end, data + i, payloadLength);
+			if (firstTime) {
+				firstTime = 0;
+				log_frameSent(packetCount, frameCount);
+			} else
+				log_frameResent(packetCount, frameCount);
 
 			// Multiple old ACKs may have accumulated. Loop until we timeout or
 			// reach an ACK with the correct sequence number.
@@ -131,12 +149,17 @@ void dat_send(char *data, size_t length) {
 		}
 
 		sequence++;
+		frameCount++;
 	}
+
+	packetCount++;
 }
 
 /* Author: Ben McMorran
  * Receives one packet from the data link layer, placing the result in data. */
 size_t dat_recv(char *data, size_t length) {
+	frameCount = 0;
+
 	uint8_t end;
 	size_t position = 0;
 	do {
@@ -146,13 +169,16 @@ size_t dat_recv(char *data, size_t length) {
 		
 		// ACK if no error
 		if (error >= 0) {
-			dat_sendAckFrame(sequenceNumber);
 			if (sequenceNumber == sequence) {
+				log_frameReceived(packetCount, frameCount++);
 				position += payloadLength;
 				sequence++;
-			}
+			} else
+				log_duplicateFrameReceived(packetCount, frameCount);
+			dat_sendAckFrame(sequenceNumber);
 		}
 	} while (!end);
 
+	packetCount++;
 	return position;
 }

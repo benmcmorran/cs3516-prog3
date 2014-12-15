@@ -1,5 +1,7 @@
 #include "error.h"
 
+FILE* logfile = 0;
+
 /* Author: Ben McMorran
  * Prints the given error, then exits. */
 void error_user(const char *msg, const char *detail) {
@@ -29,8 +31,10 @@ void error_log_user(const char *msg, const char *detail) {
 /* Author: Ben McMorran
  * Logs the given message. */
 void log_msg(const char *msg) {
-  fputs(msg, logfile);
-  fputs("\n\n", logfile);
+  if (logfile != 0) {
+    fputs(msg, logfile);
+    fputs("\n", logfile);
+  }
 }
 
 /* Author: Ben McMorran

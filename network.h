@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "data_link.h"
+#include "error.h"
 
 void net_send(char * data, size_t length, int end);
 int net_recv(char * data, size_t length, int *endOfPhoto);

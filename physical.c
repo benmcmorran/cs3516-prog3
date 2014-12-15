@@ -93,12 +93,12 @@ void phy_sendBuffer(char *data, size_t length) {
 	if (sent < 0) error_system("send() failed");
 	else if (sent != length) error_user("send()", "sent unexpected number of bytes");
 
-	/*
+	
 	// Debug code
 	printf("phy send\n");
 	phy_printBuffer(data, length);
 	printf("\n");
-	*/
+	
 }
 
 /* Author: Ben McMorran
@@ -122,7 +122,7 @@ void phy_send(char *data, size_t length, char *error, int corrupt) {
  * Receives up to length bytes from the physical layer into data, returning the
  * number of bytes actually received. */
 ssize_t phy_recvPartial(char *data, size_t length, int allowTimeout) {
-	// printf("phy recv, ");
+	printf("phy recv, ");
 	
 	if (allowTimeout) {
 		fd_set fdSet;
@@ -136,7 +136,7 @@ ssize_t phy_recvPartial(char *data, size_t length, int allowTimeout) {
 		FD_SET(SOCKET, &fdSet);
 		readyNo = select(SOCKET + 1, &fdSet, 0, 0, &timeout);
 
-		// printf("readyNo %d\n", readyNo);
+		printf("readyNo %d\n", readyNo);
 
 		if (readyNo < 0) error_system("select() failed");
 		else if (readyNo == 0) return -1;
@@ -147,8 +147,8 @@ ssize_t phy_recvPartial(char *data, size_t length, int allowTimeout) {
 	else if (received == 0) error_user("recv()", "connection closed prematurely");
 	
 	// Debug info 
-	// phy_printBuffer(data, received);
-	// printf("\n");
+	phy_printBuffer(data, received);
+	printf("\n");
 	
 	return received;
 }
