@@ -10,7 +10,7 @@ int ServerCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 void main(int argc, char *argv[]) {
 	// phy_host readies server to receive connections
 	phy_host();
-	dat_setShouldCorrupt(ServerCorrupt);
+	//dat_setShouldCorrupt(ServerCorrupt);
 	while(1)
 	{	
 		// Gets new socket

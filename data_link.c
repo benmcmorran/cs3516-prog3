@@ -13,6 +13,7 @@ int ackFrameCount = 0;
 int packetCount = 0;
 int frameCount = 0;
 uint16_t sequence = 0;
+void dat_sendAckFrame(uint16_t sequenceNumber);
 
 /* Author: Ben McMorran
  * Sets the global corruption decision function to allow custom behavior. */
@@ -75,10 +76,21 @@ int dat_recvDataFrame(uint16_t *sequenceNumber, uint8_t *endOfPacket, uint8_t *l
  * Receives one valid ack frame, filling in sequenceNumber. */
 int dat_recvAckFrame(uint16_t *sequenceNumber) {
 	char buffer[5];
-	if (dat_recvRawFrame(buffer, 5) < 0) return -1;
+	int receivedAck = 0;
 
-	if ((uint8_t)buffer[0] != FT_ACK)
-		error_user("dat_recvAckFrame()", "received non ack frame");
+	do {
+		if (dat_recvRawFrame(buffer, 5) < 0) return -1;
+
+		if ((uint8_t)buffer[0] != FT_ACK) {
+			*sequenceNumber = *(uint16_t *)(buffer + 1);
+			if (*sequenceNumber < sequence) {
+				log_duplicateFrameReceived(packetCount, frameCount);
+				dat_sendAckFrame(*sequenceNumber);
+			} else
+				log_msg("DAT: received data frame ahead of sequence");
+		} else
+			receivedAck = 1;
+	} while (!receivedAck);
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
 	log_ackFrameReceived(*sequenceNumber);
