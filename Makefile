@@ -3,8 +3,8 @@ SHARED_OBJECTS = error.o physical.o data_link.o network.o
 CLIENT_OBJECTS = client.o $(SHARED_OBJECTS)
 SERVER_OBJECTS = server.o $(SHARED_OBJECTS)
 OBJECTS = $(CLIENT_OBJECTS) $(SERVER_OBJECTS)
-CLIENT_NAME = photo_client
-SERVER_NAME = photo_server
+CLIENT_NAME = client
+SERVER_NAME = server
 
 default: client server
 

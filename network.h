@@ -5,6 +5,7 @@
 #include "data_link.h"
 #include "error.h"
 
+/* Network function prototypes. See network.c for full documentation. */
 void net_send(char * data, size_t length, int end);
 int net_recv(char * data, size_t length, int *endOfPhoto);
 void net_connect( uint16_t id, uint16_t numphotos, char * server);

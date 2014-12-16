@@ -9,7 +9,8 @@ typedef enum{
 
 int packet = 0;
 
-// Appends all the bytes together to form one char*
+/* Author: Gordon Gao
+ * Appends all the bytes together to form one char* */
 void makePacket( int pinfo,int  len,int EOP,char * data, char * ret)
 {
 	ret[0] = pinfo;
@@ -19,6 +20,7 @@ void makePacket( int pinfo,int  len,int EOP,char * data, char * ret)
 }
 
 
+// Author: Gordon Gao
 // Breaks apart data buffer.
 // Is keeping track of the field types in the packet. 
 // then strips it to just the char in the payload.
@@ -39,6 +41,7 @@ void net_recvDataPacket( int *pinfo, uint8_t *len, uint8_t *EOP, char * data) {
 	memcpy(data,buffer+3, *len);
 }
 
+// Author: Gordon Gao
 // Breaks apart data buffer.
 void net_recvACKPacket() {
 	char buffer;
@@ -57,6 +60,8 @@ void net_recvACKPacket() {
 	packet++;
 }
 
+// Author: Gordon Gao
+// Sends the given data in a network packet.
 void net_send(char * data, size_t length, int end) 
 {
 	// paylod will call createPacket and be side to packet created from length, end and data.
@@ -79,7 +84,7 @@ void net_send(char * data, size_t length, int end)
 	net_recvACKPacket();
 }
 
-
+// Author: Gordon Gao
 // Only handles data packets
 // Returns how much data was read
 // length is not length of data in the buffer.
@@ -101,7 +106,7 @@ int net_recv(char * data, size_t length, int *endOfPhoto)
 	return plen;
 }
 
-
+// Author: Gordon Gao
 // Initializes handshake between client and server. 
 void net_connect( uint16_t id, uint16_t numphotos, char * server) {
 	phy_connect(server);
@@ -117,7 +122,8 @@ void net_connect( uint16_t id, uint16_t numphotos, char * server) {
 	net_recvACKPacket();
 }
 
-// Returns client id
+// Author: Gordon Gao
+// Complete handshake with client, filling in id and numphotos
 void net_handshake(int * id, int * numphotos){
 	char buffer[5];
 	dat_recv(buffer,5);

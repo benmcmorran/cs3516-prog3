@@ -1,19 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "network.h"
 #include "error.h"
 
+// Author: Gordon Gao
+// Implements the client of the application layer
 int main(int argc, char* argv[])
 {
-	
-	// File pointer and strings to concatenate to make 
-	FILE *ifp, *ofp;
-	char photoFile[255];
+	struct timeval start, end;
 
-	logfile = fopen("clientlog.txt", "w");
-	
+	// File pointer and strings to concatenate to make 
+	FILE *ifp;
+	char photoFile[255];	
 	
 	// Creates string for file to load
 	static int id;
@@ -27,7 +28,12 @@ int main(int argc, char* argv[])
 	
 		id = atoi(argv[2]);
 		int numphotos = atoi(argv[3]);
+		char filename[20];
+		sprintf(filename, "client_%d.log", id);
+		logfile = fopen(filename, "w");
 		
+		gettimeofday(&start, NULL);
+
 		// Initializes handshake between client and server.
 		net_connect(id,numphotos, argv[1]);
 		
@@ -44,7 +50,7 @@ int main(int argc, char* argv[])
 
 			// Debug to check which file is being opened
 			if(DEBUG)
-				printf("photofile test %s \n " , photoFile);
+				printf("Sending %s...\n" , photoFile);
 			
 			ifp = fopen(photoFile, "r");
 			
@@ -68,7 +74,18 @@ int main(int argc, char* argv[])
 		} // end of for loop
 		
 		phy_close();
- 		
+
+		gettimeofday(&end, NULL);
+
+		char message[250];
+		unsigned long long int startMicros = start.tv_sec * 1000000 + start.tv_usec;
+		unsigned long long int endMicros = end.tv_sec * 1000000 + end.tv_usec;
+		sprintf(message, "Total transfer time: %llu seconds and %llu microseconds", (endMicros - startMicros) / 1000000, (endMicros - startMicros) % 1000000);
+		log_msg(message);
+		sprintf(message, "Frames sent: %d, frame retransmissions: %d, good ACKs: %d, error ACKs: %d", totalFrames, totalFramesResent, totalAcks, totalAckErrors);
+		log_msg(message);
+
+ 		fclose(logfile);
 	} 
 	else 
 	{
@@ -76,6 +93,5 @@ int main(int argc, char* argv[])
 			exit(1);
 	}
 	
-	fclose(logfile);
     return 0;
 } 

@@ -5,6 +5,11 @@
 #include "physical.h"
 #include "error.h"
 
+extern int totalFrames;
+extern int totalFramesResent;
+extern int totalAcks;
+extern int totalAckErrors;
+
 /* Define possible frame types. */
 typedef enum {
 	FT_DATA = 0,

@@ -12,6 +12,10 @@ int dataFrameCount = 0;
 int ackFrameCount = 0;
 int packetCount = 0;
 int frameCount = 0;
+int totalFrames = 0;
+int totalFramesResent = 0;
+int totalAcks = 0;
+int totalAckErrors = 0;
 uint16_t sequence = 0;
 void dat_sendAckFrame(uint16_t sequenceNumber);
 
@@ -94,6 +98,7 @@ int dat_recvAckFrame(uint16_t *sequenceNumber) {
 
 	*sequenceNumber = *(uint16_t *)(buffer + 1);
 	log_ackFrameReceived(*sequenceNumber);
+	totalAcks++;
 	return 0;
 }
 
@@ -147,8 +152,12 @@ void dat_send(char *data, size_t length) {
 			if (firstTime) {
 				firstTime = 0;
 				log_frameSent(packetCount, frameCount);
-			} else
+			} else {
 				log_frameResent(packetCount, frameCount);
+				totalFramesResent++;
+			}
+
+			totalFrames++;
 
 			// Multiple old ACKs may have accumulated. Loop until we timeout or
 			// reach an ACK with the correct sequence number.

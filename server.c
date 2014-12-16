@@ -3,11 +3,13 @@
 #include "network.h"
 #include "error.h"
 
+// Author: Gordon Gao
+// Decides whether to corrupt frames coming from the server.
 int ServerCorrupt(int dataFrames, int ackFrames, FrameType frameType) {
 	return ackFrames % 13 == 0 && frameType == FT_ACK;
 }
 
-void main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
 	// phy_host readies server to receive connections
 	phy_host();
 	//dat_setShouldCorrupt(ServerCorrupt);
@@ -28,7 +30,9 @@ void main(int argc, char *argv[]) {
 	net_handshake(&id, &numphotos);
 	char photoFile[100];
 
-	logfile = fopen("serverlog.txt", "w");
+	char filename[20];
+	sprintf(filename, "server_%d.log", id);
+	logfile = fopen(filename, "w");
 	
 	
 	for(i = 0;i < numphotos; i++)
@@ -64,5 +68,6 @@ void main(int argc, char *argv[]) {
 	phy_close();
 	fclose(logfile);
 	
+	return 0;
 }
 
